@@ -1,6 +1,11 @@
 import { red, green, bold, cyan } from "https://deno.land/std@0.221.0/fmt/colors.ts";
 
-export { red, green, bold, cyan };
+export {
+    MsgMatcher,
+    LogMap,
+    MatchResult,
+    MatchConfig
+};
 
 type LogMap = Record<string, string>;
 type MatchResult = {
