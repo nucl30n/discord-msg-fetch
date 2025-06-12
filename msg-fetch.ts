@@ -132,9 +132,8 @@ class FetchChannel {
     }
 }
 
-// Entry
-(async (f: string, cfgs: FetchConfig[]) => {
-    cfgs = await Deno.readTextFile(f)
+(async (file: string, cfgs: FetchConfig[]) => {
+    cfgs = await Deno.readTextFile(file)
         .then(t => JSON.parse(t) as FetchConfig[])
         .catch(e => {
             console.error(red(`Error reading config: ${e}`));
