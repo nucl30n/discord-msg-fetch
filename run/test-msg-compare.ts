@@ -12,3 +12,5 @@ const logB = {
 
 const matcher = new MsgMatcher(logA, logB, { threshold: 0.6 });
 matcher.run();
+
+//deno run --allow-read --allow-net msg-fetch/run/test-msg-compare.ts
