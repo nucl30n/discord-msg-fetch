@@ -97,8 +97,8 @@ class MsgMatcher {
         !this.matches.length && this.match();
         console.log(green(`\nFound ${this.matches.length} matches:\n`));
         for (const m of this.matches) {
-            const lineA = `${cyan(`${this.nameA}:`)} ${cyan(m.idA)}: ${bold(m.msgA)}`;
-            const lineB = `${cyan(`${this.nameB}:`)} ${cyan(m.idB)}: ${bold(m.msgB)}`;
+            const lineA = `${orange(`${this.nameA}:`)} ${cyan(m.idA)}: ${bold(m.msgA)}`;
+            const lineB = `${orange(`${this.nameB}:`)} ${cyan(m.idB)}: ${bold(m.msgB)}`;
             const scoreColor = m.score > 0.95 ? green : m.score > 0.6 ? cyan : red;
             const matchScore = scoreColor(`<--match ${bold(m.score.toFixed(2))}-->`);
             console.log(`${lineA}\n   ${matchScore}\n${lineB}\n${"-".repeat(80)}`);
