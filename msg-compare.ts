@@ -1,5 +1,7 @@
 import { red, green, bold, cyan } from "https://deno.land/std@0.221.0/fmt/colors.ts";
 
+export { red, green, bold, cyan };
+
 type LogMap = Record<string, string>;
 type MatchResult = {
     idA: string;
@@ -29,7 +31,7 @@ class MsgMatcher {
     }
 
     static normTokens(s: string): string[] {
-        return s.replace(FuzzyLogMatcher.LABEL_REGEX, " ")
+        return s.replace(MsgMatcher.LABEL_REGEX, " ")
             .replace(/[\/,:\n]+/g, " ")
             .replace(/\s+/g, " ")
             .toLowerCase()
@@ -51,16 +53,16 @@ class MsgMatcher {
     }
 
     static levenSim(a: string, b: string): number {
-        const dist = FuzzyLogMatcher.leven(a, b), m = Math.max(a.length, b.length);
+        const dist = MsgMatcher.leven(a, b), m = Math.max(a.length, b.length);
         return m ? 1 - dist / m : 1;
     }
 
     static fuzzyInter(A: string[], B: string[]): number {
-        return A.filter(a => B.some(b => a === b || FuzzyLogMatcher.levenSim(a, b) > 0.8)).length;
+        return A.filter(a => B.some(b => a === b || MsgMatcher.levenSim(a, b) > 0.8)).length;
     }
 
     static jaccard(a: string[], b: string[]): number {
-        const inter = FuzzyLogMatcher.fuzzyInter(a, b);
+        const inter = MsgMatcher.fuzzyInter(a, b);
         const uni = new Set([...a, ...b]).size;
         return uni ? inter / uni : 1;
     }
@@ -68,13 +70,13 @@ class MsgMatcher {
     match(): MatchResult[] {
         const out: MatchResult[] = [];
         for (const [idA, msgA] of Object.entries(this.logA)) {
-            const a = FuzzyLogMatcher.normTokens(msgA);
+            const a = MsgMatcher.normTokens(msgA);
             let best: MatchResult | null = null;
             for (const [idB, msgB] of Object.entries(this.logB)) {
-                const b = FuzzyLogMatcher.normTokens(msgB);
+                const b = MsgMatcher.normTokens(msgB);
                 const score = (a.length === 1 && b.length === 1)
-                    ? FuzzyLogMatcher.levenSim(a[0], b[0])
-                    : FuzzyLogMatcher.jaccard(a, b);
+                    ? MsgMatcher.levenSim(a[0], b[0])
+                    : MsgMatcher.jaccard(a, b);
                 if (!best || score > best.score) {
                     best = { idA, msgA, idB, msgB, score };
                 }

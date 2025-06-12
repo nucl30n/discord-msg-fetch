@@ -1,4 +1,4 @@
-import { MsgMatcher } from "../src/fuzzy-log-matcher.js";
+import { MsgMatcher } from "../msg-compare.ts";
 
 const logA = {
     "63243243243243": "username:mike3434, id: 345435345, reason:hacking",
