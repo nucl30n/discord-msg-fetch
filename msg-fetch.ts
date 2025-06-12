@@ -94,8 +94,7 @@ class FetchChannel {
             await this.fetchPage(remaining, before)
                 .then(res => res.ok ? res.json() : Promise.reject(res))
                 .then((messages: DiscordMessage[]) => {
-                    if (!Array.isArray(messages) || messages.length === 0) return;
-                    for (const msg of messages) {
+                    for (const msg of (Array.isArray(messages) ? messages : [])) {
                         const data = this.extractMessageData(msg);
                         this.output[msg.id] = data;
                     }
