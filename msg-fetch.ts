@@ -60,10 +60,10 @@ class FetchChannel {
     }
 
     extractMessageData(msg: DiscordMessage): MessageData {
-        msg.author
-            && (this.authors[msg.author.id] = msg.author.username);
+        this.authors[msg.author.id] = msg.author.username ?? "";
         msg.referenced_message?.author
-            && (this.authors[msg.referenced_message.author.id] = msg.referenced_message.author.username);
+            && (this.authors[msg.referenced_message.author.id] = msg.referenced_message.author.username ?? "");
+
 
         return {
             timestamp: msg.timestamp ? Math.floor(new Date(msg.timestamp).getTime() / 1000) : undefined,
