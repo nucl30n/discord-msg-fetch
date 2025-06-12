@@ -88,15 +88,13 @@ class FetchChannel {
     async fetchMessages(): Promise<void> {
         console.log(cyan(`Fetching up to ${this.limit} messages from ${this.channelId}`));
         let remaining = this.limit;
-        let before: string | null = null;
-
+        let before;
         while (remaining > 0) {
-            await this.fetchPage(remaining, before)
+            await this.fetchPage(remaining, before ?? null)
                 .then(res => res.ok ? res.json() : Promise.reject(res))
                 .then((messages: DiscordMessage[]) => {
                     for (const msg of (!Array.isArray(messages) ? [] : messages)) {
-                        const data = this.extractMessageData(msg);
-                        this.output[msg.id] = data;
+                        this.output[msg.id] = this.extractMessageData(msg);
                     }
                     remaining -= messages.length;
                     before = messages[messages.length - 1].id;
@@ -112,7 +110,7 @@ class FetchChannel {
     }
 
     async writeOutput(): Promise<void> {
-        const filename = `saved/channel-${this.channelId}-timestamp-${Date.now()}.json`;
+        const filename = `store/channel-${this.channelId}-timestamp-${Date.now()}.json`;
         const result = {
             authors: this.authors,
             messages: this.output,

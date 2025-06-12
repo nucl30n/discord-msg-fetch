@@ -1,2 +1,5 @@
 *.json
-saved/*
+config/*
+data/*
+!config/
+!data/
