@@ -18,6 +18,7 @@ type MatchResult = {
 
 interface MatchConfig {
     threshold?: number;
+    names?: [string, string]; // New: optional log names for output
 }
 
 class MsgMatcher {
@@ -25,6 +26,7 @@ class MsgMatcher {
     logB: LogMap;
     threshold: number;
     matches: MatchResult[];
+    names: [string, string];
 
     static LABEL_REGEX = /\b(id|robloxid|user(name)?|reason)\b\s*[:]?/gi;
 
@@ -32,6 +34,7 @@ class MsgMatcher {
         this.logA = logA;
         this.logB = logB;
         this.threshold = cfg?.threshold ?? 0.6;
+        this.names = cfg?.names ?? ["logA", "logB"];
         this.matches = [];
     }
 
@@ -94,10 +97,11 @@ class MsgMatcher {
 
     printMatches(): void {
         if (!this.matches.length) this.match();
+        const [nameA, nameB] = this.names;
         console.log(green(`\nFound ${this.matches.length} matches:\n`));
         for (const m of this.matches) {
-            const lineA = `${cyan("logA:")} ${cyan(m.idA)}: ${bold(m.msgA)}`;
-            const lineB = `${cyan("logB:")} ${cyan(m.idB)}: ${bold(m.msgB)}`;
+            const lineA = `${cyan(`${nameA}:`)} ${cyan(m.idA)}: ${bold(m.msgA)}`;
+            const lineB = `${cyan(`${nameB}:`)} ${cyan(m.idB)}: ${bold(m.msgB)}`;
             const scoreColor =
                 m.score > 0.95 ? green : m.score > 0.6 ? cyan : red;
             const matchScore = scoreColor(`<--match ${bold(m.score.toFixed(2))}-->`);
@@ -110,4 +114,3 @@ class MsgMatcher {
         this.printMatches();
     }
 }
-
