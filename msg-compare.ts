@@ -1,4 +1,4 @@
-import { red, green, bold, cyan } from "https://deno.land/std@0.221.0/fmt/colors.ts";
+import { red, green, bold, cyan, rgb24, rgb8, gray, yellow, magenta, white, brightYellow } from "https://deno.land/std@0.221.0/fmt/colors.ts";
 
 export {
     MsgMatcher,
@@ -95,12 +95,14 @@ class MsgMatcher {
 
     printMatches = (): void => {
         !this.matches.length && this.match();
-        console.log(green(`\nFound ${this.matches.length} matches:\n`));
+        console.log(brightYellow(`\nFound ${this.matches.length} matches:\n`));
+
         for (const m of this.matches) {
-            const lineA = `${orange(`${this.nameA}:`)} ${cyan(m.idA)}: ${bold(m.msgA)}`;
-            const lineB = `${orange(`${this.nameB}:`)} ${cyan(m.idB)}: ${bold(m.msgB)}`;
-            const scoreColor = m.score > 0.95 ? green : m.score > 0.6 ? cyan : red;
-            const matchScore = scoreColor(`<--match ${bold(m.score.toFixed(2))}-->`);
+            const lineA = `${yellow(`${this.nameA}:`)} ${gray(m.idA)}: ${bold(m.msgA)}`;
+
+            const lineB = `${yellow(`${this.nameB}:`)} ${gray(m.idB)}: ${bold(m.msgB)}`;
+
+            const matchScore = magenta(`-----------match ${bold(m.score.toFixed(2))}-----------`);
             console.log(`${lineA}\n   ${matchScore}\n${lineB}\n${"-".repeat(80)}`);
         }
     };
