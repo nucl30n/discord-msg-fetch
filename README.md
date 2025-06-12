@@ -10,4 +10,4 @@ To use this script, follow these steps:
 1. Place the script (msg-fetch.ts) and the config file (msg-fetch.json) in a directory
 2. Populate the config file with server ID, target user ID, and auth token
 3. Run with [Deno](https://deno.land):
-```deno run --allow-net --allow-read msg-fetch.ts```
+```deno run --allow-net --allow-read --allow-write msg-fetch.ts```

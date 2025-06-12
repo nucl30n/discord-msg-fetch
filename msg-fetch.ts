@@ -22,7 +22,7 @@ interface MessageData {
 }
 
 interface AuthorMap {
-    [id: string]: { username: string; };
+    [id: string]: string;
 }
 
 interface MessageMap {
@@ -60,9 +60,11 @@ class FetchChannel {
     }
 
     extractMessageData(msg: DiscordMessage): MessageData {
-        msg.author && (this.authors[msg.author.id] = {
-            username: msg.author.username
-        });
+        msg.author
+            && (this.authors[msg.author.id] = msg.author.username);
+        msg.referenced_message?.author
+            && (this.authors[msg.referenced_message.author.id] = msg.referenced_message.author.username);
+
         return {
             timestamp: msg.timestamp ? Math.floor(new Date(msg.timestamp).getTime() / 1000) : undefined,
             content: msg.content,
@@ -70,6 +72,7 @@ class FetchChannel {
             referenced: msg.referenced_message?.id
         };
     }
+
 
     async fetchPage(remaining: number, before: string | null): Promise<Response> {
         return fetch(
