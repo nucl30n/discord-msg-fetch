@@ -6,7 +6,7 @@ class FetchChannel {
         this.channelId = "";
         this.domain = "";
         this.limit = 100;
-        this.output = [];
+        this.output = {};
         this.throttleTime = 750;
         this.authors = {};
     }
@@ -50,8 +50,10 @@ class FetchChannel {
                 .then(res => res.ok ? res.json() : Promise.reject(res))
                 .then(messages => {
                     if (!Array.isArray(messages) || messages.length === 0) return;
-
-                    this.output.push(...messages.map(msg => this.extractMessageData(msg)));
+                    messages.forEach(msg => {
+                        const data = this.extractMessageData(msg);
+                        this.output[data.id] = data;
+                    });
                     remaining -= messages.length;
                     before = messages[messages.length - 1].id;
                     console.log(`Fetched ${messages.length}, total: ${this.output.length}`);
@@ -72,7 +74,7 @@ class FetchChannel {
             messages: this.output,
         };
         await Deno.writeTextFile(filename, JSON.stringify(result, null, 2));
-        console.log(green(`Saved ${this.output.length} messages to ${filename}`));
+        console.log(green(`Saved ${Object.keys(this.output).length} messages to ${filename}`));
     }
 
     async run({ token, channelId, domain, limit }) {
