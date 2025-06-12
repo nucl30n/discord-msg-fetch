@@ -1,6 +1,50 @@
 import { red, green, bold, cyan } from "https://deno.land/std@0.221.0/fmt/colors.ts";
 
+interface DiscordAuthor {
+    id: string;
+    username: string;
+    global_name?: string;
+}
+
+interface DiscordMessage {
+    id: string;
+    timestamp: string;
+    content: string;
+    author: DiscordAuthor;
+    referenced_message?: DiscordMessage;
+}
+
+interface MessageData {
+    timestamp: number | undefined;
+    content: string;
+    author: string | undefined;
+    referenced: string | undefined;
+}
+
+interface AuthorMap {
+    [id: string]: { username: string; };
+}
+
+interface MessageMap {
+    [id: string]: MessageData;
+}
+
+interface FetchConfig {
+    token: string;
+    channelId: string;
+    domain: string;
+    limit: number;
+}
+
 class FetchChannel {
+    token: string;
+    channelId: string;
+    domain: string;
+    limit: number;
+    output: MessageMap;
+    throttleTime: number;
+    authors: AuthorMap;
+
     constructor() {
         this.token = "";
         this.channelId = "";
@@ -11,11 +55,11 @@ class FetchChannel {
         this.authors = {};
     }
 
-    async delay(ms = this.throttleTime) {
+    async delay(ms: number = this.throttleTime): Promise<void> {
         return new Promise(res => setTimeout(res, ms));
     }
 
-    extractMessageData(msg) {
+    extractMessageData(msg: DiscordMessage): MessageData {
         msg.author && (this.authors[msg.author.id] = {
             username: msg.author.username
         });
@@ -27,7 +71,7 @@ class FetchChannel {
         };
     }
 
-    async fetchPage(remaining, before) {
+    async fetchPage(remaining: number, before: string | null): Promise<Response> {
         return fetch(
             `${this.domain}/api/v10/channels/${this.channelId}/messages?limit=${Math.min(100, remaining)}${before ? `&before=${before}` : ""}`,
             {
@@ -39,15 +83,15 @@ class FetchChannel {
         );
     }
 
-    async fetchMessages() {
+    async fetchMessages(): Promise<void> {
         console.log(cyan(`Fetching up to ${this.limit} messages from ${this.channelId}`));
         let remaining = this.limit;
-        let before = null;
+        let before: string | null = null;
 
         while (remaining > 0) {
             await this.fetchPage(remaining, before)
                 .then(res => res.ok ? res.json() : Promise.reject(res))
-                .then(messages => {
+                .then((messages: DiscordMessage[]) => {
                     if (!Array.isArray(messages) || messages.length === 0) return;
                     for (const msg of messages) {
                         const data = this.extractMessageData(msg);
@@ -57,7 +101,7 @@ class FetchChannel {
                     before = messages[messages.length - 1].id;
                     console.log(`Fetched ${messages.length}, total: ${Object.keys(this.output).length}`);
                 })
-                .catch(err => {
+                .catch((err: any) => {
                     console.error(red(`Error fetching messages: ${err.status ?? err}`));
                     return this.delay(3000);
                 });
@@ -66,7 +110,7 @@ class FetchChannel {
         }
     }
 
-    async writeOutput() {
+    async writeOutput(): Promise<void> {
         const filename = `saved/channel-${this.channelId}-timestamp-${Date.now()}.json`;
         const result = {
             authors: this.authors,
@@ -76,11 +120,11 @@ class FetchChannel {
         console.log(green(`Saved ${Object.keys(this.output).length} messages to ${filename}`));
     }
 
-    async run({ token, channelId, domain, limit }) {
-        this.token = token;
-        this.channelId = channelId;
-        this.domain = domain;
-        this.limit = limit;
+    async run(config: FetchConfig): Promise<void> {
+        this.token = config.token;
+        this.channelId = config.channelId;
+        this.domain = config.domain;
+        this.limit = config.limit;
 
         await this.fetchMessages();
         await this.writeOutput();
@@ -88,9 +132,10 @@ class FetchChannel {
     }
 }
 
-(async (f, cfgs) => {
+// Entry
+(async (f: string, cfgs: FetchConfig[]) => {
     cfgs = await Deno.readTextFile(f)
-        .then(t => JSON.parse(t))
+        .then(t => JSON.parse(t) as FetchConfig[])
         .catch(e => {
             console.error(red(`Error reading config: ${e}`));
             return [];
