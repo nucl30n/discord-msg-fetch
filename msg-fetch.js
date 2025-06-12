@@ -66,7 +66,7 @@ class FetchChannel {
     }
 
     async writeOutput() {
-        const filename = `saved/channel-${this.channelId}.json`;
+        const filename = `saved/channel-${this.channelId}-timestamp-${Date.now()}.json`;
         const result = {
             authors: this.authors,
             messages: this.output,
@@ -87,7 +87,6 @@ class FetchChannel {
     }
 }
 
-/// Entry
 (async (f, cfgs) => {
     cfgs = await Deno.readTextFile(f)
         .then(t => JSON.parse(t))
