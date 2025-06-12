@@ -6,7 +6,7 @@ various tools for interacting with Discord
 all of these classes are built to run using [Deno](https://deno.land)
 
 example useage: 
-```deno run --allow-net --allow-read exec/test-msg-fetch.js```
+```deno run --allow-net --allow-read run/test-msg-fetch.js```
 
 ## Discord Message Fetch
 
