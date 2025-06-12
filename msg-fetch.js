@@ -20,7 +20,6 @@ class FetchChannel {
             username: msg.author.username
         });
         return {
-            id: msg.id,
             timestamp: msg.timestamp,
             content: msg.content,
             author: msg.author?.id,
