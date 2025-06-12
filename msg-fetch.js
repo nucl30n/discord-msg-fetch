@@ -8,11 +8,27 @@ class FetchChannel {
         this.limit = 100;
         this.output = [];
         this.throttleTime = 750;
+        this.authors = {};
     }
 
     async delay(ms = this.throttleTime) {
         return new Promise(res => setTimeout(res, ms));
     }
+
+    extractMessageData(msg) {
+        msg.author && (this.authors[msg.author.id] = {
+            username: msg.author.username,
+            global_name: msg.author.global_name ?? null
+        });
+        return {
+            id: msg.id,
+            timestamp: msg.timestamp,
+            content: msg.content,
+            author: msg.author?.id,
+            referenced: msg.referenced_message?.id
+        };
+    }
+
 
     async fetchMessages() {
         console.log(cyan(`Fetching up to ${this.limit} messages from ${this.channelId}`));
@@ -36,7 +52,7 @@ class FetchChannel {
                 .then(messages => {
                     if (!Array.isArray(messages) || messages.length === 0) return;
 
-                    this.output.push(...messages);
+                    this.output.push(...messages.map(msg => this.extractMessageData(msg)));
                     remaining -= messages.length;
                     before = messages[messages.length - 1].id;
                     console.log(`Fetched ${messages.length}, total: ${this.output.length}`);
@@ -52,7 +68,11 @@ class FetchChannel {
 
     async writeOutput() {
         const filename = `saved/channel-${this.channelId}.json`;
-        await Deno.writeTextFile(filename, JSON.stringify(this.output, null, 2));
+        const result = {
+            authors: this.authors,
+            messages: this.output,
+        };
+        await Deno.writeTextFile(filename, JSON.stringify(result, null, 2));
         console.log(green(`Saved ${this.output.length} messages to ${filename}`));
     }
 
@@ -80,4 +100,4 @@ class FetchChannel {
     for (const cfg of cfgs) {
         await new FetchChannel().run(cfg);
     }
-})("config.json", []);
+})("msg-fetch.json", []);
