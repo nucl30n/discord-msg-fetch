@@ -1,17 +1,15 @@
-import { FetchChannel, FetchConfig, colors } from "./msg-fetch.ts";
+import { MsgMatcher } from "../msg-compare.ts";
 
-import { readTextFile } from "https://deno.land/std@0.221.0/fs/mod.ts";
-
-
-(async (file: string, cfgs: FetchConfig[]) => {
-    cfgs = await Deno.readTextFile(file)
-        .then(t => JSON.parse(t) as FetchConfig[])
-        .catch(e => {
-            console.error(colors.red(`Error reading cfg: ${e}`));
-            return [];
-        });
-
-    for (const cfg of cfgs) {
-        await new FetchChannel().run(cfg);
+const logs = {
+    wanted: {
+        "63243243243243": "username:mike3434, id: 345435345, reason:hacking",
+        "63243265563243": "username:andyroblox43433, id: 457645632, reason:scammer 3x"
+    },
+    ban: {
+        "63243243243243": "user:mike3434, robloxID: 345435345, hacking",
+        "645345435344534": "andyroblox43433/457645632, scammed 3x"
     }
-})("msg-fetch.json", []);
+};
+
+const matcher = new MsgMatcher(logs, { threshold: 0.6 });
+matcher.run();
