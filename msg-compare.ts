@@ -18,7 +18,6 @@ type MatchResult = {
 
 interface MatchConfig {
     threshold?: number;
-    names?: [string, string]; // New: optional log names for output
 }
 
 class MsgMatcher {
@@ -26,29 +25,32 @@ class MsgMatcher {
     logB: LogMap;
     threshold: number;
     matches: MatchResult[];
-    names: [string, string];
+    nameA: string;
+    nameB: string;
 
     static LABEL_REGEX = /\b(id|robloxid|user(name)?|reason)\b\s*[:]?/gi;
 
-    constructor(logA: LogMap = {}, logB: LogMap = {}, cfg?: MatchConfig) {
-        this.logA = logA;
-        this.logB = logB;
+    constructor(logs: Record<string, LogMap>, cfg?: { threshold?: number; }) {
+        const keys = Object.keys(logs);
+        if (keys.length < 2) throw new Error("logs object must have two keys");
+        this.nameA = keys[0];
+        this.nameB = keys[1];
+        this.logA = logs[this.nameA];
+        this.logB = logs[this.nameB];
         this.threshold = cfg?.threshold ?? 0.6;
-        this.names = cfg?.names ?? ["logA", "logB"];
         this.matches = [];
     }
 
-    static normTokens(s: string): string[] {
-        return s.replace(MsgMatcher.LABEL_REGEX, " ")
+    static normTokens = (s: string) =>
+        s.replace(MsgMatcher.LABEL_REGEX, " ")
             .replace(/[\/,:\n]+/g, " ")
             .replace(/\s+/g, " ")
             .toLowerCase()
             .trim()
             .split(" ")
             .filter(Boolean);
-    }
 
-    static leven(a: string, b: string): number {
+    static leven = (a: string, b: string) => {
         const d = Array(a.length + 1).fill(null).map(() => Array(b.length + 1).fill(0));
         for (let i = 0; i <= a.length; i++) d[i][0] = i;
         for (let j = 0; j <= b.length; j++) d[0][j] = j;
@@ -58,24 +60,23 @@ class MsgMatcher {
                     ? d[i - 1][j - 1]
                     : 1 + Math.min(d[i - 1][j], d[i][j - 1], d[i - 1][j - 1]);
         return d[a.length][b.length];
-    }
+    };
 
-    static levenSim(a: string, b: string): number {
+    static levenSim = (a: string, b: string) => {
         const dist = MsgMatcher.leven(a, b), m = Math.max(a.length, b.length);
         return m ? 1 - dist / m : 1;
-    }
+    };
 
-    static fuzzyInter(A: string[], B: string[]): number {
-        return A.filter(a => B.some(b => a === b || MsgMatcher.levenSim(a, b) > 0.8)).length;
-    }
+    static fuzzyInter = (A: string[], B: string[]) =>
+        A.filter(a => B.some(b => a === b || MsgMatcher.levenSim(a, b) > 0.8)).length;
 
-    static jaccard(a: string[], b: string[]): number {
+    static jaccard = (a: string[], b: string[]) => {
         const inter = MsgMatcher.fuzzyInter(a, b);
         const uni = new Set([...a, ...b]).size;
         return uni ? inter / uni : 1;
-    }
+    };
 
-    match(): MatchResult[] {
+    match = (): MatchResult[] => {
         const out: MatchResult[] = [];
         for (const [idA, msgA] of Object.entries(this.logA)) {
             const a = MsgMatcher.normTokens(msgA);
@@ -85,32 +86,24 @@ class MsgMatcher {
                 const score = (a.length === 1 && b.length === 1)
                     ? MsgMatcher.levenSim(a[0], b[0])
                     : MsgMatcher.jaccard(a, b);
-                if (!best || score > best.score) {
-                    best = { idA, msgA, idB, msgB, score };
-                }
+                best = !best || score > best.score ? { idA, msgA, idB, msgB, score } : best;
             }
-            if (best && best.score >= this.threshold) out.push(best);
+            best && best.score >= this.threshold && out.push(best);
         }
-        this.matches = out;
-        return out;
-    }
+        return this.matches = out;
+    };
 
-    printMatches(): void {
-        if (!this.matches.length) this.match();
-        const [nameA, nameB] = this.names;
+    printMatches = (): void => {
+        !this.matches.length && this.match();
         console.log(green(`\nFound ${this.matches.length} matches:\n`));
         for (const m of this.matches) {
-            const lineA = `${cyan(`${nameA}:`)} ${cyan(m.idA)}: ${bold(m.msgA)}`;
-            const lineB = `${cyan(`${nameB}:`)} ${cyan(m.idB)}: ${bold(m.msgB)}`;
-            const scoreColor =
-                m.score > 0.95 ? green : m.score > 0.6 ? cyan : red;
+            const lineA = `${cyan(`${this.nameA}:`)} ${cyan(m.idA)}: ${bold(m.msgA)}`;
+            const lineB = `${cyan(`${this.nameB}:`)} ${cyan(m.idB)}: ${bold(m.msgB)}`;
+            const scoreColor = m.score > 0.95 ? green : m.score > 0.6 ? cyan : red;
             const matchScore = scoreColor(`<--match ${bold(m.score.toFixed(2))}-->`);
             console.log(`${lineA}\n   ${matchScore}\n${lineB}\n${"-".repeat(80)}`);
         }
-    }
+    };
 
-    run(): void {
-        this.match();
-        this.printMatches();
-    }
+    run = (): void => (this.match(), this.printMatches());
 }
