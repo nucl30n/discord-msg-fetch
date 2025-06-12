@@ -1,0 +1,14 @@
+import { MsgMatcher } from "../src/fuzzy-log-matcher.js";
+
+const logA = {
+    "63243243243243": "username:mike3434, id: 345435345, reason:hacking",
+    "63243265563243": "username:andyroblox43433, id: 457645632, reason:scammer 3x"
+};
+
+const logB = {
+    "63243243243243": "user:mike3434, robloxID: 345435345, hacking",
+    "645345435344534": "andyroblox43433/457645632, scammed 3x"
+};
+
+const matcher = new MsgMatcher(logA, logB, { threshold: 0.6 });
+matcher.run();
