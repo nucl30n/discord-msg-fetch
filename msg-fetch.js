@@ -1,50 +1,28 @@
-import { red, green, yellow, bold, cyan } from "https://deno.land/std@0.221.0/fmt/colors.ts";
+import { red, green, bold, cyan } from "https://deno.land/std@0.221.0/fmt/colors.ts";
 
-class MessageFetcher {
+class FetchChannel {
     constructor() {
-        this.throttleTime = 500;
-        this.offset = 0;
-        this.targetId = "";
-        this.guildId = "";
         this.token = "";
+        this.channelId = "";
         this.domain = "";
+        this.limit = 100;
         this.output = [];
+        this.throttleTime = 750;
     }
 
     async delay(ms = this.throttleTime) {
-        console.log(`Waiting ${ms}ms`);
         return new Promise(res => setTimeout(res, ms));
     }
 
-    async responseHandler(res, func, args) {
-        const json = await res.json().catch(() => ({}));
-
-        switch (res.status) {
-            case 200:
-                this.throttleTime = Math.max(this.throttleTime - 25, 600);
-                return json;
-            case 404:
-                console.log(yellow("not found"));
-                return json;
-            case 429:
-                console.log(red("rate limited"));
-                this.throttleTime = Math.ceil((json.retry_after || 1) * 1000) + this.throttleTime;
-                return this.delay().then(() => func(...args));
-            default:
-                console.log(red(`unhandled: ${res.status}`));
-                return this.delay().then(() => func(...args));
-        }
-    }
-
     async fetchMessages() {
-        console.log(cyan("searching"));
-        let total = Infinity;
+        console.log(cyan(`Fetching up to ${this.limit} messages from ${this.channelId}`));
+        let remaining = this.limit;
+        let before = null;
 
         const fetchPage = () =>
             fetch(
-                `${this.domain}/api/v9/guilds/${this.guildId}/messages/search?author_id=${this.targetId}&include_nsfw=true&offset=${this.offset}`,
+                `${this.domain}/api/v10/channels/${this.channelId}/messages?limit=${Math.min(100, remaining)}${before ? `&before=${before}` : ""}`,
                 {
-                    method: "GET",
                     headers: {
                         "Authorization": this.token,
                         "Content-Type": "application/json"
@@ -52,42 +30,41 @@ class MessageFetcher {
                 }
             );
 
-        while (this.offset < total) {
+        while (remaining > 0) {
             await fetchPage()
-                .then(res => this.responseHandler(res, fetchPage.bind(this), []))
-                .then(data => data ?? {})
-                .then(data => typeof data.messages === "object" ? data : { messages: [] })
-                .then(data => {
-                    total = typeof data.total_results === "number" ? data.total_results : total;
-                    this.offset += 25;
+                .then(res => res.ok ? res.json() : Promise.reject(res))
+                .then(messages => {
+                    if (!Array.isArray(messages) || messages.length === 0) return;
 
-                    for (const msgGroup of data.messages) {
-                        if (msgGroup?.[0]) {
-                            this.output.push(msgGroup[0]);
-                        }
-                    }
-
-                    console.log(`collected ${data.messages.length} groups (total: ${this.output.length})`);
+                    this.output.push(...messages);
+                    remaining -= messages.length;
+                    before = messages[messages.length - 1].id;
+                    console.log(`Fetched ${messages.length}, total: ${this.output.length}`);
                 })
-                .then(() => this.delay());
+                .catch(err => {
+                    console.error(red(`Error fetching messages: ${err.status ?? err}`));
+                    return this.delay(3000); // back off
+                });
+
+            await this.delay();
         }
     }
 
-    async run({ targetId, guildId, token, domain }) {
-        this.targetId = targetId;
-        this.guildId = guildId;
+    async writeOutput() {
+        const filename = `saved/channel-${this.channelId}.json`;
+        await Deno.writeTextFile(filename, JSON.stringify(this.output, null, 2));
+        console.log(green(`Saved ${this.output.length} messages to ${filename}`));
+    }
+
+    async run({ token, channelId, domain, limit }) {
         this.token = token;
+        this.channelId = channelId;
         this.domain = domain;
+        this.limit = limit;
 
         await this.fetchMessages();
         await this.writeOutput();
         console.log(bold(green("done")));
-    }
-
-    async writeOutput() {
-        const filename = `messages-${this.guildId}-${this.targetId}.json`;
-        await Deno.writeTextFile(filename, JSON.stringify(this.output, null, 2));
-        console.log(green(`Messages written to ${filename}`));
     }
 }
 
@@ -100,7 +77,7 @@ class MessageFetcher {
             return [];
         });
 
-    for (let cfg of cfgs) {
-        await new MessageFetcher().run(cfg);
+    for (const cfg of cfgs) {
+        await new FetchChannel().run(cfg);
     }
 })("config.json", []);
