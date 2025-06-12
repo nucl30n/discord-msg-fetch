@@ -17,8 +17,7 @@ class FetchChannel {
 
     extractMessageData(msg) {
         msg.author && (this.authors[msg.author.id] = {
-            username: msg.author.username,
-            global_name: msg.author.global_name ?? null
+            username: msg.author.username
         });
         return {
             id: msg.id,
