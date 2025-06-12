@@ -73,7 +73,6 @@ class FetchChannel {
         };
     }
 
-
     async fetchPage(remaining: number, before: string | null): Promise<Response> {
         return fetch(
             `${this.domain}/api/v10/channels/${this.channelId}/messages?limit=${Math.min(100, remaining)}${before ? `&before=${before}` : ""}`,
