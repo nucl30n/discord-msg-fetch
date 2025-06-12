@@ -20,43 +20,42 @@ class FetchChannel {
             username: msg.author.username
         });
         return {
-            id: msg.id,
-            timestamp: msg.timestamp,
+            timestamp: msg.timestamp ? Math.floor(new Date(msg.timestamp).getTime() / 1000) : undefined,
             content: msg.content,
             author: msg.author?.id,
             referenced: msg.referenced_message?.id
         };
     }
 
+    async fetchPage(remaining, before) {
+        return fetch(
+            `${this.domain}/api/v10/channels/${this.channelId}/messages?limit=${Math.min(100, remaining)}${before ? `&before=${before}` : ""}`,
+            {
+                headers: {
+                    "Authorization": this.token,
+                    "Content-Type": "application/json"
+                }
+            }
+        );
+    }
 
     async fetchMessages() {
         console.log(cyan(`Fetching up to ${this.limit} messages from ${this.channelId}`));
         let remaining = this.limit;
         let before = null;
 
-        const fetchPage = () =>
-            fetch(
-                `${this.domain}/api/v10/channels/${this.channelId}/messages?limit=${Math.min(100, remaining)}${before ? `&before=${before}` : ""}`,
-                {
-                    headers: {
-                        "Authorization": this.token,
-                        "Content-Type": "application/json"
-                    }
-                }
-            );
-
         while (remaining > 0) {
-            await fetchPage()
+            await this.fetchPage(remaining, before)
                 .then(res => res.ok ? res.json() : Promise.reject(res))
                 .then(messages => {
                     if (!Array.isArray(messages) || messages.length === 0) return;
-                    messages.forEach(msg => {
+                    for (const msg of messages) {
                         const data = this.extractMessageData(msg);
-                        this.output[data.id] = data;
-                    });
+                        this.output[msg.id] = data;
+                    }
                     remaining -= messages.length;
                     before = messages[messages.length - 1].id;
-                    console.log(`Fetched ${messages.length}, total: ${this.output.length}`);
+                    console.log(`Fetched ${messages.length}, total: ${Object.keys(this.output).length}`);
                 })
                 .catch(err => {
                     console.error(red(`Error fetching messages: ${err.status ?? err}`));
