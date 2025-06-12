@@ -43,7 +43,7 @@ class FetchChannel {
                 })
                 .catch(err => {
                     console.error(red(`Error fetching messages: ${err.status ?? err}`));
-                    return this.delay(3000); // back off
+                    return this.delay(3000);
                 });
 
             await this.delay();
