@@ -1,5 +1,1 @@
 *.json
-config/*
-data/*
-!config/
-!data/
